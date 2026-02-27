@@ -38,8 +38,7 @@ Migration scripts are located in:
 src/main/resources/db/migration/
 ```
 
-Scripts follow the naming convention: `V{version}__{description}.sql`  
-Example: `V1__init.sql`
+Scripts follow the naming convention: `V{version}__{description}.sql`
 
 No manual action is needed.
 
