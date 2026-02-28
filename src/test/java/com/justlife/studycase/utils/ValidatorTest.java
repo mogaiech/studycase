@@ -1,4 +1,4 @@
-package com.justlife.studycase.validator;
+package com.justlife.studycase.utils;
 
 import com.justlife.studycase.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,15 +18,15 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
-public class AvailabilityValidatorTest {
+public class ValidatorTest {
 
-    private AvailabilityValidator validator;
+    private Validator validator;
 
-    private static final LocalDate DATE = LocalDate.of(2026, 3, 2); // Monday
+    private static final LocalDate DATE = LocalDate.of(2026, 3, 2);
 
     @BeforeEach
     void setUp() {
-        validator = new AvailabilityValidator();
+        validator = new Validator();
     }
 
     @Nested

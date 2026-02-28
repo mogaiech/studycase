@@ -3,21 +3,18 @@ package com.justlife.studycase.service;
 import com.justlife.studycase.dto.*;
 import com.justlife.studycase.entity.BookingEntity;
 import com.justlife.studycase.entity.ProfessionalEntity;
-import com.justlife.studycase.exception.BusinessException;
 import com.justlife.studycase.repository.BookingRepository;
 import com.justlife.studycase.repository.ProfessionalRepository;
-import com.justlife.studycase.validator.AvailabilityValidator;
+import com.justlife.studycase.utils.Constant;
+import com.justlife.studycase.utils.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,17 +23,12 @@ public class AvailabilityService {
 
     private final ProfessionalRepository professionalRepository;
     private final BookingRepository bookingRepository;
-    private final AvailabilityValidator availabilityValidator; // Add this
-
-    public static final LocalTime WORK_START = LocalTime.of(8, 0);
-    public static final LocalTime WORK_END = LocalTime.of(22, 0);
-    public static final int BREAK_MINUTES = 30;
-    public static final Set<Integer> VALID_DURATIONS = Set.of(2, 4);
+    private final Validator validator;
 
     public AvailabilityResponse checkAvailability(AvailabilityRequest availabilityRequest) {
-        availabilityValidator.validateNotFriday(availabilityRequest.getDate());
+        validator.validateNotFriday(availabilityRequest.getDate());
 
-        if (availabilityRequest.getDurationHours() != null && availabilityRequest.getStartTime() != null && VALID_DURATIONS.contains(availabilityRequest.getDurationHours())) {
+        if (availabilityRequest.getDurationHours() != null && availabilityRequest.getStartTime() != null && Constant.VALID_DURATIONS.contains(availabilityRequest.getDurationHours())) {
             return checkAvailabilityForTimeSlot(availabilityRequest);
         }
 
@@ -44,16 +36,16 @@ public class AvailabilityService {
     }
 
     private AvailabilityResponse checkAvailabilityForTimeSlot(AvailabilityRequest availabilityRequest) {
-        availabilityValidator.validateDuration(availabilityRequest.getDurationHours());
+        validator.validateDuration(availabilityRequest.getDurationHours());
 
         LocalDateTime slotStart = LocalDateTime.of(availabilityRequest.getDate(), availabilityRequest.getStartTime());
         LocalDateTime slotEnd = slotStart.plusHours(availabilityRequest.getDurationHours());
 
-        availabilityValidator.validateWithinWorkingHours(slotStart, slotEnd);
+        validator.validateWithinWorkingHours(slotStart, slotEnd);
 
-        // Expand window by 30 min each side to enforce break constraint
-        LocalDateTime windowStart = slotStart.minusMinutes(BREAK_MINUTES);
-        LocalDateTime windowEnd = slotEnd.plusMinutes(BREAK_MINUTES);
+        // Window by 30 min each side to enforce break constraint
+        LocalDateTime windowStart = slotStart.minusMinutes(Constant.BREAK_MINUTES);
+        LocalDateTime windowEnd = slotEnd.plusMinutes(Constant.BREAK_MINUTES);
 
         List<ProfessionalEntity> availableProfessionals =
                 professionalRepository.findAvailableProfessionals(windowStart, windowEnd);
@@ -75,34 +67,34 @@ public class AvailabilityService {
         List<ProfessionalEntity> professionalEntities = professionalRepository.findAll();
 
         List<Professional> professionals = professionalEntities.stream()
-                .map(p -> buildAvailabilityWithSlots(p, date))
-                .filter(pa -> !pa.getAvailableSlots().isEmpty())
+                .map(pro -> buildAvailabilityWithSlots(pro, date))
+                .filter(p -> !p.getAvailableSlots().isEmpty())
                 .collect(Collectors.toList());
 
         return AvailabilityResponse.builder().professionals(professionals).build();
     }
 
-    private Professional buildAvailabilityWithSlots(ProfessionalEntity professional, LocalDate date) {
-        LocalDateTime dayStart = LocalDateTime.of(date, WORK_START);
-        LocalDateTime dayEnd = LocalDateTime.of(date, WORK_END);
+    private Professional buildAvailabilityWithSlots(ProfessionalEntity professionalEntity, LocalDate date) {
+        LocalDateTime dayStart = LocalDateTime.of(date, Constant.WORK_START);
+        LocalDateTime dayEnd = LocalDateTime.of(date, Constant.WORK_END);
 
         List<BookingEntity> bookings = bookingRepository
-                .findBookingsForProfessionalOnDate(professional.getId(), dayStart, dayEnd);
+                .findBookingsForProfessionalOnDate(professionalEntity.getId(), dayStart, dayEnd);
 
         // Build blocked intervals (with 30-min break)
         List<LocalDateTime[]> blockedIntervals = bookings.stream()
                 .map(b -> new LocalDateTime[]{
-                        b.getStartDateTime().minusMinutes(BREAK_MINUTES),
-                        b.getEndDateTime().plusMinutes(BREAK_MINUTES)
+                        b.getStartDateTime().minusMinutes(Constant.BREAK_MINUTES),
+                        b.getEndDateTime().plusMinutes(Constant.BREAK_MINUTES)
                 })
                 .collect(Collectors.toList());
 
         List<TimeSlot> slots = computeAvailableSlots(blockedIntervals, dayStart, dayEnd);
 
         return Professional.builder()
-                .id(professional.getId())
-                .name(professional.getName())
-                .vehicle(Vehicle.builder().id(professional.getVehicle().getId()).plateNumber(professional.getVehicle().getPlateNumber()).brandName(professional.getVehicle().getBrandName()).build())
+                .id(professionalEntity.getId())
+                .name(professionalEntity.getName())
+                .vehicle(Vehicle.builder().id(professionalEntity.getVehicle().getId()).plateNumber(professionalEntity.getVehicle().getPlateNumber()).brandName(professionalEntity.getVehicle().getBrandName()).build())
                 .availableSlots(slots)
                 .build();
     }
@@ -118,7 +110,7 @@ public class AvailabilityService {
         List<LocalDateTime[]> mergedBlockedIntervals = new ArrayList<>();
         for (LocalDateTime[] currentInterval : sortedBlockedIntervals) {
             LocalDateTime currentStart = currentInterval[0];
-            LocalDateTime currentEnd   = currentInterval[1];
+            LocalDateTime currentEnd = currentInterval[1];
 
             if (mergedBlockedIntervals.isEmpty() ||
                     currentStart.isAfter(mergedBlockedIntervals.get(mergedBlockedIntervals.size() - 1)[1])) {
@@ -139,7 +131,7 @@ public class AvailabilityService {
 
         for (LocalDateTime[] blockedInterval : mergedBlockedIntervals) {
             LocalDateTime blockedStart = blockedInterval[0];
-            LocalDateTime blockedEnd   = blockedInterval[1];
+            LocalDateTime blockedEnd = blockedInterval[1];
 
             // The free window ends where the blocked interval begins
             LocalDateTime freeWindowEnd = blockedStart.isBefore(dayEnd) ? blockedStart : dayEnd;
@@ -156,7 +148,7 @@ public class AvailabilityService {
             freeWindowStart = blockedEnd.isAfter(freeWindowStart) ? blockedEnd : freeWindowStart;
         }
 
-        // Handle the remaining free window after the last blocked interval until end of day
+        // Handle the remaining free window after the last blocked interval until the end of the day
         if (!freeWindowStart.plusHours(2).isAfter(dayEnd)) {
             freeSlots.add(TimeSlot.builder()
                     .from(freeWindowStart.toLocalTime())
@@ -165,5 +157,28 @@ public class AvailabilityService {
         }
 
         return freeSlots;
+    }
+
+    /**
+     * Check if a specific professional is available for an appointment.
+     */
+    public boolean isProfessionalAvailable(Long professionalId,
+                                           LocalDateTime appointmentStart,
+                                           LocalDateTime appointmentEnd,
+                                           Long excludeBookingId) {
+
+        LocalDateTime windowStart = appointmentStart.minusMinutes(Constant.BREAK_MINUTES);
+        LocalDateTime windowEnd = appointmentEnd.plusMinutes(Constant.BREAK_MINUTES);
+
+        List<BookingEntity> bookingConflicts = bookingRepository.findOverlappingBookingsForProfessional(
+                professionalId, windowStart, windowEnd);
+
+        if (excludeBookingId != null) {
+            bookingConflicts = bookingConflicts.stream()
+                    .filter(b -> !b.getId().equals(excludeBookingId))
+                    .toList();
+        }
+
+        return bookingConflicts.isEmpty();
     }
 }

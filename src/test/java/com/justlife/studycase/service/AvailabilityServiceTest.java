@@ -2,13 +2,15 @@ package com.justlife.studycase.service;
 
 import com.justlife.studycase.dto.AvailabilityRequest;
 import com.justlife.studycase.dto.AvailabilityResponse;
+import com.justlife.studycase.dto.TimeSlot;
 import com.justlife.studycase.entity.BookingEntity;
+import com.justlife.studycase.entity.BookingStatus;
 import com.justlife.studycase.entity.ProfessionalEntity;
 import com.justlife.studycase.entity.VehicleEntity;
 import com.justlife.studycase.exception.BusinessException;
 import com.justlife.studycase.repository.BookingRepository;
 import com.justlife.studycase.repository.ProfessionalRepository;
-import com.justlife.studycase.validator.AvailabilityValidator;
+import com.justlife.studycase.utils.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,16 +41,15 @@ class AvailabilityServiceTest {
 
     private AvailabilityService availabilityService;
 
-    private VehicleEntity vehicleEntity;
     private ProfessionalEntity professionalEntity;
 
     @BeforeEach
     void setUp() {
-        AvailabilityValidator availabilityValidator = new AvailabilityValidator();
+        Validator validator = new Validator();
         availabilityService = new AvailabilityService(
-                professionalRepository, bookingRepository, availabilityValidator);
+                professionalRepository, bookingRepository, validator);
 
-        vehicleEntity = VehicleEntity.builder()
+        VehicleEntity vehicleEntity = VehicleEntity.builder()
                 .id(1L)
                 .brandName("Nissan")
                 .plateNumber("JL-001-A")
@@ -81,7 +82,7 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should return professionals with slots when no bookings exist")
         void shouldReturnAvailableSlotsForFreeDay() {
-            LocalDate date = LocalDate.of(2024, 6, 10); // Monday
+            LocalDate date = LocalDate.of(2026, 6, 10);
             AvailabilityRequest request = new AvailabilityRequest(date, null, null);
 
             when(professionalRepository.findAll()).thenReturn(List.of(professionalEntity));
@@ -107,7 +108,7 @@ class AvailabilityServiceTest {
                     .startDateTime(LocalDateTime.of(date, LocalTime.of(8, 0)))
                     .endDateTime(LocalDateTime.of(date, LocalTime.of(22, 0)))
                     .durationHours(4)
-                    .status(BookingEntity.BookingStatus.CONFIRMED)
+                    .status(BookingStatus.CONFIRMED)
                     .build();
 
             when(professionalRepository.findAll()).thenReturn(List.of(professionalEntity));
@@ -191,7 +192,7 @@ class AvailabilityServiceTest {
                     .thenReturn(List.of());
 
             AvailabilityResponse result = availabilityService.checkAvailability(request);
-            var slots = result.getProfessionals().get(0).getAvailableSlots();
+            List<TimeSlot> slots = result.getProfessionals().get(0).getAvailableSlots();
 
             assertThat(slots).isNotEmpty();
             // All slots must start at or after 08:00
@@ -212,7 +213,7 @@ class AvailabilityServiceTest {
                     .startDateTime(LocalDateTime.of(date, LocalTime.of(10, 0)))
                     .endDateTime(LocalDateTime.of(date, LocalTime.of(12, 0)))
                     .durationHours(2)
-                    .status(BookingEntity.BookingStatus.CONFIRMED)
+                    .status(BookingStatus.CONFIRMED)
                     .build();
 
             when(professionalRepository.findAll()).thenReturn(List.of(professionalEntity));
@@ -220,14 +221,13 @@ class AvailabilityServiceTest {
                     .thenReturn(List.of(existing));
 
             AvailabilityResponse result = availabilityService.checkAvailability(request);
-            var slots = result.getProfessionals().get(0).getAvailableSlots();
+            List<TimeSlot> slots = result.getProfessionals().get(0).getAvailableSlots();
 
-            // No slot should overlap the 30-min break buffer around 10:00–12:00
-            // i.e. each slot must end by 09:30 OR start at 12:30 or later
+            // No slot should overlap the 30-min break window around 10:00–12:00
             slots.forEach(slot -> {
-                boolean endsBeforeBuffer  = !slot.getTo().isAfter(LocalTime.of(9, 30));
-                boolean startsAfterBuffer = !slot.getFrom().isBefore(LocalTime.of(12, 30));
-                assertThat(endsBeforeBuffer || startsAfterBuffer)
+                boolean endsBeforeWindow  = !slot.getTo().isAfter(LocalTime.of(9, 30));
+                boolean startsAfterWindow = !slot.getFrom().isBefore(LocalTime.of(12, 30));
+                assertThat(endsBeforeWindow || startsAfterWindow)
                         .as("Slot %s–%s should respect 30-min break around 10:00–12:00 booking",
                                 slot.getFrom(), slot.getTo())
                         .isTrue();
@@ -246,7 +246,7 @@ class AvailabilityServiceTest {
                     .startDateTime(LocalDateTime.of(date, LocalTime.of(9, 0)))
                     .endDateTime(LocalDateTime.of(date, LocalTime.of(11, 0)))
                     .durationHours(2)
-                    .status(BookingEntity.BookingStatus.CONFIRMED)
+                    .status(BookingStatus.CONFIRMED)
                     .build();
 
             // Booking 2: 12:00–16:00 (4h, starts right after the 30-min break of booking 1)
@@ -255,7 +255,7 @@ class AvailabilityServiceTest {
                     .startDateTime(LocalDateTime.of(date, LocalTime.of(12, 0)))
                     .endDateTime(LocalDateTime.of(date, LocalTime.of(16, 0)))
                     .durationHours(4)
-                    .status(BookingEntity.BookingStatus.CONFIRMED)
+                    .status(BookingStatus.CONFIRMED)
                     .build();
 
             when(professionalRepository.findAll()).thenReturn(List.of(professionalEntity));
@@ -263,12 +263,11 @@ class AvailabilityServiceTest {
                     .thenReturn(List.of(firstBooking, secondBooking));
 
             AvailabilityResponse result = availabilityService.checkAvailability(request);
-            var slots = result.getProfessionals().get(0).getAvailableSlots();
+            List<TimeSlot> slots = result.getProfessionals().get(0).getAvailableSlots();
 
             // Expected free windows (each must be ≥ 2h to appear)
             assertThat(slots).hasSize(1);
 
-            // Only remaining free window: 16:30 → 22:00
             assertThat(slots.get(0).getFrom()).isEqualTo(LocalTime.of(16, 30));
             assertThat(slots.get(0).getTo()).isEqualTo(LocalTime.of(22, 0));
         }

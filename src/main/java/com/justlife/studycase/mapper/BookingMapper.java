@@ -19,6 +19,8 @@ public class BookingMapper {
                 .map(p -> Professional.builder()
                         .id(p.getId())
                         .name(p.getName())
+                        .phone(p.getPhone())
+                        .email(p.getEmail())
                         .vehicle(Vehicle.builder().id(p.getVehicle().getId()).plateNumber(p.getVehicle().getPlateNumber()).brandName(p.getVehicle().getBrandName()).build())
                         .build())
                 .collect(Collectors.toList());

@@ -28,4 +28,20 @@ public interface BookingRepository extends JpaRepository<BookingEntity, Long> {
             @Param("professionalId") Long professionalId,
             @Param("dayStart") LocalDateTime dayStart,
             @Param("dayEnd") LocalDateTime dayEnd);
+
+    /**
+     * Find confirmed bookings for a specific professional that overlap with the given time window.
+     */
+    @Query("""
+            SELECT b FROM BookingEntity b
+            JOIN b.professionals p
+            WHERE b.status = 'CONFIRMED'
+            AND p.id = :professionalId
+            AND b.startDateTime < :windowEnd
+            AND b.endDateTime   > :windowStart
+            """)
+    List<BookingEntity> findOverlappingBookingsForProfessional(
+            @Param("professionalId") Long professionalId,
+            @Param("windowStart")    LocalDateTime windowStart,
+            @Param("windowEnd")      LocalDateTime windowEnd);
 }

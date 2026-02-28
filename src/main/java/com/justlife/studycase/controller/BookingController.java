@@ -7,11 +7,12 @@ import com.justlife.studycase.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,7 +44,24 @@ public class BookingController {
                     content = @Content(schema = @Schema(implementation = ApiError.class)))
     })
     public ResponseEntity<BookingResponse> createBooking(
-            @Valid @RequestBody BookingRequest request) {
+            @RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = BookingRequest.class),
+                            examples = @ExampleObject(
+                                    name = "Create booking",
+                                    value = """
+                                            {
+                                              "startDateTime": "2026-03-05 10:00",
+                                              "durationHours": 2,
+                                              "professionalCount": 2,
+                                              "customerEmail": "john.smith@test.com",
+                                              "customerName": "John Smith"
+                                            }"""
+                            )
+                    )
+            )
+            @org.springframework.web.bind.annotation.RequestBody BookingRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(bookingService.createBooking(request));
     }
@@ -80,7 +98,21 @@ public class BookingController {
     public ResponseEntity<BookingResponse> updateBooking(
             @Parameter(description = "Booking ID", example = "1")
             @PathVariable Long id,
-            @Valid @RequestBody BookingRequest request) {
+            @RequestBody(
+                    required = true,
+                    content = @Content(
+                            schema = @Schema(implementation = BookingRequest.class),
+                            examples = @ExampleObject(
+                                    name = "Update booking",
+                                    value = """
+                                            {
+                                              "startDateTime": "2026-03-05 14:00",
+                                              "durationHours": 2
+                                            }"""
+                            )
+                    )
+            )
+            @org.springframework.web.bind.annotation.RequestBody BookingRequest request) {
         return ResponseEntity.ok(bookingService.updateBooking(id, request));
     }
 }

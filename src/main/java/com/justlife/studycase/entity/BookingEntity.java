@@ -34,6 +34,9 @@ public class BookingEntity {
     @Column(nullable = false)
     private int durationHours;
 
+    @Column(name = "professional_count", nullable = false)
+    private Integer professionalCount;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -46,8 +49,4 @@ public class BookingEntity {
             inverseJoinColumns = @JoinColumn(name = "professional_id")
     )
     private Set<ProfessionalEntity> professionals;
-
-    public enum BookingStatus {
-        CONFIRMED, CANCELLED
-    }
 }
