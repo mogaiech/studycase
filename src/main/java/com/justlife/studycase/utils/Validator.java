@@ -11,6 +11,12 @@ import java.time.LocalTime;
 
 @Component
 public class Validator {
+    public void validatePastDate(LocalDate date) {
+        if(date.isBefore(LocalDate.now())) {
+            throw new BusinessException("No availability on past date");
+        }
+    }
+
     public void validateNotFriday(LocalDate date) {
         if (date.getDayOfWeek() == DayOfWeek.FRIDAY) {
             throw new BusinessException("No availability on Fridays");
@@ -29,20 +35,16 @@ public class Validator {
     }
 
     public void validateDuration(int durationHours) {
-        boolean valid = Constant.VALID_DURATIONS.stream()
-                .anyMatch(vd -> vd == durationHours);
+        boolean valid = Constant.VALID_DURATIONS.stream().anyMatch(vd -> vd == durationHours);
         if (!valid) {
-            throw new BusinessException(
-                    "Appointment duration must be 2 or 4 hours");
+            throw new BusinessException("Appointment duration must be 2 or 4 hours");
         }
     }
 
     public void validateProfessionalCount(int count) {
-        boolean valid = Constant.ALLOWED_PROFESSIONAL_COUNTS.stream()
-                .anyMatch(c -> c == count);
+        boolean valid = Constant.ALLOWED_PROFESSIONAL_COUNTS.stream().anyMatch(c -> c == count);
         if (!valid) {
-            throw new BusinessException(
-                    "Professional count must be 1, 2, or 3. Provided: " + count);
+            throw new BusinessException("Professional count must be 1, 2, or 3");
         }
     }
 
@@ -54,21 +56,20 @@ public class Validator {
         LocalDateTime endDateTime = request.getStartDateTime().plusHours(request.getDurationHours());
         validateWithinWorkingHours(request.getStartDateTime(), endDateTime);
 
-        if (request.getCustomerName() == null || request.getCustomerName().isBlank())
+        if (request.getCustomerName() == null || request.getCustomerName().isBlank()) {
             throw new BusinessException("customerName is required");
-        if (request.getCustomerEmail() == null || request.getCustomerEmail().isBlank())
+        }
+        if (request.getCustomerEmail() == null || request.getCustomerEmail().isBlank()) {
             throw new BusinessException("customerEmail is required");
-        if (request.getProfessionalCount() == null)
+        }
+        if (request.getProfessionalCount() == null) {
             throw new BusinessException("professionalCount is required");
-
+        }
         validateProfessionalCount(request.getProfessionalCount());
     }
 
     public void validateUpdateBooking(BookingRequest request) {
-        // Only startDateTime and durationHours are required for update
         validateFields(request);
-
-        // Business rule validation
         validateNotFriday(request.getStartDateTime().toLocalDate());
         validateDuration(request.getDurationHours());
 
@@ -76,12 +77,15 @@ public class Validator {
         validateWithinWorkingHours(request.getStartDateTime(), end);
     }
 
-    private static void validateFields(BookingRequest request) {
-        if (request.getStartDateTime() == null)
+    private void validateFields(BookingRequest request) {
+        if (request.getStartDateTime() == null) {
             throw new BusinessException("startDateTime is required");
-        if (request.getStartDateTime().isBefore(LocalDateTime.now()))
+        }
+        if (request.getStartDateTime().isBefore(LocalDateTime.now())) {
             throw new BusinessException("startDateTime must be in the future");
-        if (request.getDurationHours() == null)
+        }
+        if (request.getDurationHours() == null) {
             throw new BusinessException("durationHours is required");
+        }
     }
 }

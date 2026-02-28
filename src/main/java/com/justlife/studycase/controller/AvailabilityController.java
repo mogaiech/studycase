@@ -29,10 +29,10 @@ public class AvailabilityController {
     @Operation(
             summary = "Check availability",
             description = """
-                    **Date only** (e.g. `?date=2026-03-01`):
+                    **Date only:**
                     Returns all professionals with their available time windows for the day.
                     
-                    **Date + Time + Duration** (e.g. `?date=2026-03-01&startTime=10:00&durationHours=2`):
+                    **Date, time and duration:**
                     Returns professionals available for that exact time window.
                     """
     )

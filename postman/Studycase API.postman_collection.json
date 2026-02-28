@@ -1,20 +1,14 @@
 {
   "info": {
+    "_postman_id": "b2214fbc-a579-4750-990c-03941e498c56",
     "name": "Studycase API",
-    "description": "Postman collection for the Studycase Spring Boot API — Availability & Bookings",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "description": "Postman collection for the Studycase API - Availability & Bookings",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "23716449"
   },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8080",
-      "type": "string"
-    }
-  ],
   "item": [
     {
       "name": "Availability",
-      "description": "Check professional availability",
       "item": [
         {
           "name": "Check availability by date only",
@@ -22,19 +16,26 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/availability?date=2026-03-02",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "availability"],
+              "raw": "{{baseUrl}}/api/v1/availability?date=2026-03-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "availability"
+              ],
               "query": [
                 {
                   "key": "date",
-                  "value": "2026-03-02",
-                  "description": "Selected date (yyyy-MM-dd). Fridays are not available."
+                  "value": "2026-03-01",
+                  "description": "Selected date (yyyy-MM-dd)."
                 }
               ]
             },
             "description": "Returns all professionals with their available time windows for the given day."
-          }
+          },
+          "response": []
         },
         {
           "name": "Check availability by date + time + duration (2h)",
@@ -43,13 +44,19 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/availability?date=2026-03-02&startTime=10:00&durationHours=2",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "availability"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "availability"
+              ],
               "query": [
                 {
                   "key": "date",
                   "value": "2026-03-02",
-                  "description": "Selected date (yyyy-MM-dd). Fridays are not available."
+                  "description": "Selected date (yyyy-MM-dd)."
                 },
                 {
                   "key": "startTime",
@@ -64,7 +71,8 @@
               ]
             },
             "description": "Returns professionals available for the exact 2-hour window starting at 10:00."
-          }
+          },
+          "response": []
         },
         {
           "name": "Check availability by date + time + duration (4h)",
@@ -73,8 +81,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/availability?date=2026-03-02&startTime=14:00&durationHours=4",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "availability"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "availability"
+              ],
               "query": [
                 {
                   "key": "date",
@@ -94,17 +108,51 @@
               ]
             },
             "description": "Returns professionals available for the exact 4-hour window starting at 14:00."
-          }
+          },
+          "response": []
         },
         {
-          "name": "Check availability on a Friday (should fail)",
+          "name": "Check availability on a Friday",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/availability?date=2026-03-06",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "availability"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-03-06",
+                  "description": "A Friday - expected to return an error."
+                }
+              ]
+            },
+            "description": "Fridays are not available. Expects a 400 error."
+          },
+          "response": []
+        },
+        {
+          "name": "Check availability on a past date",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/availability?date=2026-03-06",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "availability"
+              ],
               "query": [
                 {
                   "key": "date",
@@ -114,13 +162,14 @@
               ]
             },
             "description": "Fridays are not available. Expects a 400 error."
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "description": "Check professional availability"
     },
     {
       "name": "Bookings",
-      "description": "Create, retrieve and update bookings",
       "item": [
         {
           "name": "Create booking (2h, 1 professional)",
@@ -138,11 +187,18 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/bookings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
             },
             "description": "Creates a booking for 1 professional with a 2-hour duration."
-          }
+          },
+          "response": []
         },
         {
           "name": "Create booking (4h, 2 professionals)",
@@ -160,14 +216,21 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/bookings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
             },
             "description": "Creates a booking for 2 professionals with a 4-hour duration."
-          }
+          },
+          "response": []
         },
         {
-          "name": "Create booking (3 professionals)",
+          "name": "Create booking (2h, 3 professionals)",
           "request": {
             "method": "POST",
             "header": [
@@ -182,14 +245,21 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/bookings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
             },
             "description": "Creates a booking for 3 professionals with a 2-hour duration."
-          }
+          },
+          "response": []
         },
         {
-          "name": "Create booking — invalid duration (should fail)",
+          "name": "Create booking - invalid duration",
           "request": {
             "method": "POST",
             "header": [
@@ -204,11 +274,18 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/bookings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
             },
             "description": "durationHours=3 is invalid. Expects a 400 error."
-          }
+          },
+          "response": []
         },
         {
           "name": "Get booking by ID",
@@ -216,28 +293,44 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/bookings/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings", "1"]
+              "raw": "{{baseUrl}}/api/v1/bookings/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "2"
+              ]
             },
             "description": "Retrieves a booking by its ID."
-          }
+          },
+          "response": []
         },
         {
-          "name": "Get booking — not found (should fail)",
+          "name": "Get booking not found",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/bookings/9999",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings", "9999"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "9999"
+              ]
             },
             "description": "Booking ID 9999 does not exist. Expects a 404 error."
-          }
+          },
+          "response": []
         },
         {
-          "name": "Reschedule booking (PATCH)",
+          "name": "Reschedule booking",
           "request": {
             "method": "PATCH",
             "header": [
@@ -248,18 +341,26 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerName\": \"John Smith\",\n  \"customerEmail\": \"john.smith@example.com\",\n  \"startDateTime\": \"2026-03-04 09:00\",\n  \"durationHours\": 2,\n  \"professionalCount\": 1\n}"
+              "raw": "{\n  \"startDateTime\": \"2026-03-02 12:00\",\n  \"durationHours\": 2\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/bookings/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings", "1"]
+              "raw": "{{baseUrl}}/api/v1/bookings/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "2"
+              ]
             },
             "description": "Reschedules booking ID 1 to a new date and start time. Duration and professionals remain unchanged."
-          }
+          },
+          "response": []
         },
         {
-          "name": "Reschedule booking — not found (should fail)",
+          "name": "Reschedule booking not found",
           "request": {
             "method": "PATCH",
             "header": [
@@ -270,18 +371,33 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerName\": \"Ghost\",\n  \"customerEmail\": \"ghost@example.com\",\n  \"startDateTime\": \"2026-03-04 09:00\",\n  \"durationHours\": 2,\n  \"professionalCount\": 1\n}"
+              "raw": "{\n    \"durationHours\": 2,\n    \"startDateTime\": \"2026-03-02 09:00\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/bookings/9999",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "bookings", "9999"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "9999"
+              ]
             },
             "description": "Booking ID 9999 does not exist. Expects a 404 error."
-          }
+          },
+          "response": []
         }
-      ]
+      ],
+      "description": "Create, retrieve and update bookings"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
     }
   ]
 }
-

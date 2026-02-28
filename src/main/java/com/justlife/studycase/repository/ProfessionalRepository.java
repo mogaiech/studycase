@@ -13,8 +13,7 @@ import java.util.List;
 public interface ProfessionalRepository extends JpaRepository<ProfessionalEntity, Long> {
 
     /**
-     * Find professionals who have no overlapping bookings in the given time window
-     * (taking in account 30-minute break before and after each booking).
+     * Find professionals who have no overlapping bookings in the given time window (including 30-minute break).
      */
     @Query("""
             SELECT cp FROM ProfessionalEntity cp
@@ -31,8 +30,7 @@ public interface ProfessionalRepository extends JpaRepository<ProfessionalEntity
             @Param("windowEnd") LocalDateTime windowEnd);
 
     /**
-     * Find professionals from a specific vehicle who have no overlapping bookings
-     * in the given time window (including 30-minute break).
+     * Find professionals from a specific vehicle who have no overlapping bookings in the given time window (including 30-minute break).
      */
     @Query("""
             SELECT cp FROM ProfessionalEntity cp

@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Booking details")
+@Schema(description = "Response payload for a booking")
 public class BookingResponse {
     @Schema(description = "Booking ID")
     private Long id;

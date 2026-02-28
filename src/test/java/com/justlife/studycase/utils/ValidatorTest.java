@@ -1,5 +1,6 @@
 package com.justlife.studycase.utils;
 
+import com.justlife.studycase.dto.AvailabilityRequest;
 import com.justlife.studycase.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,11 +31,20 @@ public class ValidatorTest {
     }
 
     @Nested
-    @DisplayName("Validate not friday")
+    @DisplayName("Validate date")
     class ValidateNotFriday {
+        @Test
+        @DisplayName("Should reject when date is in the past")
+        void shouldRejectPastDate() {
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+
+            assertThatThrownBy(() -> validator.validatePastDate(yesterday))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("past");
+        }
 
         @Test
-        @DisplayName("Should reject when booking is on Friday")
+        @DisplayName("Should reject when date is on Friday")
         void shouldRejectFriday() {
             LocalDate friday = LocalDate.of(2026, 2, 27); // Friday
             assertThatThrownBy(() -> validator.validateNotFriday(friday))
@@ -43,7 +53,7 @@ public class ValidatorTest {
         }
 
         @Test
-        @DisplayName("Should pass for non-Friday working days")
+        @DisplayName("Should pass for working days")
         void shouldAcceptNonFriday() {
             LocalDate monday    = LocalDate.of(2026, 3, 2);
             LocalDate tuesday   = LocalDate.of(2026, 3, 3);

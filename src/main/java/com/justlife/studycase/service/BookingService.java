@@ -37,14 +37,14 @@ public class BookingService {
     @Transactional
     public BookingResponse createBooking(BookingRequest bookingRequest) {
         LocalDateTime startDateTime = bookingRequest.getStartDateTime();
-        LocalDateTime endDateTime   = startDateTime.plusHours(bookingRequest.getDurationHours());
+        LocalDateTime endDateTime = startDateTime.plusHours(bookingRequest.getDurationHours());
 
         validator.validateCreateBooking(bookingRequest);
 
-        Set<ProfessionalEntity> assignedProfessionals = findAvailableProfessionalsFromSameVehicle(
-                        startDateTime,
-                        endDateTime,
-                        bookingRequest.getProfessionalCount(), null);
+        Set<ProfessionalEntity> assignedProfessionals = findAvailableProfessionalsFromVehicle(
+                startDateTime,
+                endDateTime,
+                bookingRequest.getProfessionalCount(), null);
 
         // Create and persist the booking with its professionals
         BookingEntity booking = BookingEntity.builder()
@@ -60,80 +60,78 @@ public class BookingService {
 
         BookingEntity savedBooking = bookingRepository.save(booking);
 
-        return BookingMapper.convertEntityToDto(savedBooking);
+        return BookingMapper.toBookingResponseDto(savedBooking);
     }
 
+    @Transactional
     public BookingResponse getBooking(Long id) {
-        return BookingMapper.convertEntityToDto(
+        return BookingMapper.toBookingResponseDto(
                 bookingRepository.findById(id)
                         .orElseThrow(() -> new BusinessException("Booking not found with id: " + id)));
     }
 
+    @Transactional
     public BookingResponse updateBooking(Long id, BookingRequest bookingRequest) {
         BookingEntity bookingEntity = bookingRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Booking not found with id: " + id));
 
         if (!BookingStatus.CONFIRMED.equals(bookingEntity.getStatus())) {
-            throw new BusinessException("Cannot update a non confirmed bookingEntity.");
+            throw new BusinessException("Cannot update a non confirmed bookingEntity");
         }
 
         validator.validateUpdateBooking(bookingRequest);
 
         LocalDateTime startDateTime = bookingRequest.getStartDateTime();
-        LocalDateTime endDateTime   = startDateTime.plusHours(bookingEntity.getDurationHours());
+        LocalDateTime endDateTime = startDateTime.plusHours(bookingEntity.getDurationHours());
 
-        boolean currentProfessionalsAvailable =  bookingEntity.getProfessionals().stream()
+        boolean currentProfessionalsAvailable = bookingEntity.getProfessionals().stream()
                 .allMatch(prof -> availabilityService.isProfessionalAvailable(
                         prof.getId(), startDateTime, endDateTime, id));
 
         Set<ProfessionalEntity> assignedProfessionals;
         if (currentProfessionalsAvailable) {
-            // Keep the same professionals
             assignedProfessionals = bookingEntity.getProfessionals();
         } else {
-            // Find new professionals from the same vehicle
-            assignedProfessionals = new HashSet<>(findAvailableProfessionalsFromSameVehicle(
-                    startDateTime, endDateTime, bookingEntity.getProfessionalCount(), id));
+            assignedProfessionals = findAvailableProfessionalsFromVehicle(startDateTime, endDateTime, bookingEntity.getProfessionalCount(), id);
         }
 
         bookingEntity.setStartDateTime(startDateTime);
         bookingEntity.setEndDateTime(endDateTime);
         bookingEntity.setProfessionals(assignedProfessionals);
 
-        return BookingMapper.convertEntityToDto(bookingRepository.save(bookingEntity));
+        return BookingMapper.toBookingResponseDto(bookingRepository.save(bookingEntity));
     }
 
-    private Set<ProfessionalEntity> findAvailableProfessionalsFromSameVehicle(
+    /**
+     * Find available professionals from a vehicle.
+     */
+    private Set<ProfessionalEntity> findAvailableProfessionalsFromVehicle(
             LocalDateTime appointmentStart,
             LocalDateTime appointmentEnd,
             int professionalCount,
             Long excludeBookingId) {
 
         LocalDateTime windowStart = appointmentStart.minusMinutes(Constant.BREAK_MINUTES);
-        LocalDateTime windowEnd   = appointmentEnd.plusMinutes(Constant.BREAK_MINUTES);
+        LocalDateTime windowEnd = appointmentEnd.plusMinutes(Constant.BREAK_MINUTES);
 
         // Iterate vehicles and find the first one with enough available professionals
         List<VehicleEntity> vehicleEntities = vehicleRepository.findAll();
         for (VehicleEntity vehicle : vehicleEntities) {
-            List<ProfessionalEntity> availableProfessionals =
-                    professionalRepository.findAvailableProfessionalsByVehicle(
-                            vehicle.getId(), windowStart, windowEnd);
+            List<ProfessionalEntity> availableProfessionals = professionalRepository.findAvailableProfessionalsByVehicle(vehicle.getId(), windowStart, windowEnd);
 
             // If updating, we need to re-check excluding the current booking
             if (excludeBookingId != null) {
                 availableProfessionals = availableProfessionals.stream()
-                        .filter(pro -> availabilityService.isProfessionalAvailable(
-                                pro.getId(), appointmentStart, appointmentEnd, excludeBookingId))
+                        .filter(pro -> availabilityService.isProfessionalAvailable(pro.getId(), appointmentStart, appointmentEnd, excludeBookingId))
                         .toList();
             }
 
+            // If enough professionals are available, assign them to the booking
             if (availableProfessionals.size() >= professionalCount) {
                 return new HashSet<>(availableProfessionals.subList(0, professionalCount));
             }
         }
 
-        throw new BusinessException(
-                "No vehicle has " + professionalCount +
-                        " available professional for the requested time slot. Please try a different date, time, or reduce the number of professionals");
+        throw new BusinessException("No vehicle has available professional for the requested time slot. Please try a different date, time, or reduce the number of professionals");
     }
 }
