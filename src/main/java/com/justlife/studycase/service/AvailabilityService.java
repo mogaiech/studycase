@@ -1,23 +1,169 @@
 package com.justlife.studycase.service;
 
-import com.justlife.studycase.dto.AvailabilityRequest;
-import com.justlife.studycase.dto.AvailabilityResponse;
+import com.justlife.studycase.dto.*;
+import com.justlife.studycase.entity.BookingEntity;
+import com.justlife.studycase.entity.ProfessionalEntity;
+import com.justlife.studycase.exception.BusinessException;
+import com.justlife.studycase.repository.BookingRepository;
+import com.justlife.studycase.repository.ProfessionalRepository;
+import com.justlife.studycase.validator.AvailabilityValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AvailabilityService {
 
-    static final LocalTime WORK_START = LocalTime.of(8, 0);
-    static final LocalTime WORK_END = LocalTime.of(22, 0);
-    static final int BREAK_MINUTES = 30;
-    static final Set<Integer> VALID_DURATIONS = Set.of(2, 4);
+    private final ProfessionalRepository professionalRepository;
+    private final BookingRepository bookingRepository;
+    private final AvailabilityValidator availabilityValidator; // Add this
+
+    public static final LocalTime WORK_START = LocalTime.of(8, 0);
+    public static final LocalTime WORK_END = LocalTime.of(22, 0);
+    public static final int BREAK_MINUTES = 30;
+    public static final Set<Integer> VALID_DURATIONS = Set.of(2, 4);
 
     public AvailabilityResponse checkAvailability(AvailabilityRequest availabilityRequest) {
-        return null;
+        availabilityValidator.validateNotFriday(availabilityRequest.getDate());
+
+        if (availabilityRequest.getDurationHours() != null && availabilityRequest.getStartTime() != null && VALID_DURATIONS.contains(availabilityRequest.getDurationHours())) {
+            return checkAvailabilityForTimeSlot(availabilityRequest);
+        }
+
+        return checkAvailabilityForDate(availabilityRequest.getDate());
+    }
+
+    private AvailabilityResponse checkAvailabilityForTimeSlot(AvailabilityRequest availabilityRequest) {
+        availabilityValidator.validateDuration(availabilityRequest.getDurationHours());
+
+        LocalDateTime slotStart = LocalDateTime.of(availabilityRequest.getDate(), availabilityRequest.getStartTime());
+        LocalDateTime slotEnd = slotStart.plusHours(availabilityRequest.getDurationHours());
+
+        availabilityValidator.validateWithinWorkingHours(slotStart, slotEnd);
+
+        // Expand window by 30 min each side to enforce break constraint
+        LocalDateTime windowStart = slotStart.minusMinutes(BREAK_MINUTES);
+        LocalDateTime windowEnd = slotEnd.plusMinutes(BREAK_MINUTES);
+
+        List<ProfessionalEntity> availableProfessionals =
+                professionalRepository.findAvailableProfessionals(windowStart, windowEnd);
+
+        List<Professional> professionals = availableProfessionals.stream()
+                .map(p -> Professional.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .email(p.getEmail())
+                        .phone(p.getPhone())
+                        .vehicle(Vehicle.builder().id(p.getVehicle().getId()).plateNumber(p.getVehicle().getPlateNumber()).brandName(p.getVehicle().getBrandName()).build())
+                        .build())
+                .collect(Collectors.toList());
+
+        return AvailabilityResponse.builder().professionals(professionals).build();
+    }
+
+    private AvailabilityResponse checkAvailabilityForDate(LocalDate date) {
+        List<ProfessionalEntity> professionalEntities = professionalRepository.findAll();
+
+        List<Professional> professionals = professionalEntities.stream()
+                .map(p -> buildAvailabilityWithSlots(p, date))
+                .filter(pa -> !pa.getAvailableSlots().isEmpty())
+                .collect(Collectors.toList());
+
+        return AvailabilityResponse.builder().professionals(professionals).build();
+    }
+
+    private Professional buildAvailabilityWithSlots(ProfessionalEntity professional, LocalDate date) {
+        LocalDateTime dayStart = LocalDateTime.of(date, WORK_START);
+        LocalDateTime dayEnd = LocalDateTime.of(date, WORK_END);
+
+        List<BookingEntity> bookings = bookingRepository
+                .findBookingsForProfessionalOnDate(professional.getId(), dayStart, dayEnd);
+
+        // Build blocked intervals (with 30-min break)
+        List<LocalDateTime[]> blockedIntervals = bookings.stream()
+                .map(b -> new LocalDateTime[]{
+                        b.getStartDateTime().minusMinutes(BREAK_MINUTES),
+                        b.getEndDateTime().plusMinutes(BREAK_MINUTES)
+                })
+                .collect(Collectors.toList());
+
+        List<TimeSlot> slots = computeAvailableSlots(blockedIntervals, dayStart, dayEnd);
+
+        return Professional.builder()
+                .id(professional.getId())
+                .name(professional.getName())
+                .vehicle(Vehicle.builder().id(professional.getVehicle().getId()).plateNumber(professional.getVehicle().getPlateNumber()).brandName(professional.getVehicle().getBrandName()).build())
+                .availableSlots(slots)
+                .build();
+    }
+
+    private List<TimeSlot> computeAvailableSlots(List<LocalDateTime[]> blockedIntervals, LocalDateTime dayStart, LocalDateTime dayEnd) {
+        // Sort blocked intervals by their start time
+        List<LocalDateTime[]> sortedBlockedIntervals = blockedIntervals.stream()
+                .sorted(Comparator.comparing(interval -> interval[0]))
+                .toList();
+
+        // Merge overlapping or adjacent blocked intervals into a single continuous block
+        // so we don't create free slots inside an overlapping blocked range
+        List<LocalDateTime[]> mergedBlockedIntervals = new ArrayList<>();
+        for (LocalDateTime[] currentInterval : sortedBlockedIntervals) {
+            LocalDateTime currentStart = currentInterval[0];
+            LocalDateTime currentEnd   = currentInterval[1];
+
+            if (mergedBlockedIntervals.isEmpty() ||
+                    currentStart.isAfter(mergedBlockedIntervals.get(mergedBlockedIntervals.size() - 1)[1])) {
+                // No overlap with the last merged block: add as a new block
+                mergedBlockedIntervals.add(new LocalDateTime[]{currentStart, currentEnd});
+            } else {
+                // Overlap detected: extend the last merged block's end if needed
+                LocalDateTime lastMergedEnd = mergedBlockedIntervals.get(mergedBlockedIntervals.size() - 1)[1];
+                mergedBlockedIntervals.get(mergedBlockedIntervals.size() - 1)[1] =
+                        currentEnd.isAfter(lastMergedEnd) ? currentEnd : lastMergedEnd;
+            }
+        }
+
+        // Walk through the day and collect free gaps between blocked intervals
+        // A gap is only valid if it fits at least a 2-hour booking
+        List<TimeSlot> freeSlots = new ArrayList<>();
+        LocalDateTime freeWindowStart = dayStart;
+
+        for (LocalDateTime[] blockedInterval : mergedBlockedIntervals) {
+            LocalDateTime blockedStart = blockedInterval[0];
+            LocalDateTime blockedEnd   = blockedInterval[1];
+
+            // The free window ends where the blocked interval begins
+            LocalDateTime freeWindowEnd = blockedStart.isBefore(dayEnd) ? blockedStart : dayEnd;
+
+            // Only add the free slot if the gap is at least 2 hours
+            if (!freeWindowStart.plusHours(2).isAfter(freeWindowEnd)) {
+                freeSlots.add(TimeSlot.builder()
+                        .from(freeWindowStart.toLocalTime())
+                        .to(freeWindowEnd.toLocalTime())
+                        .build());
+            }
+
+            // Move the free window start past the end of the current blocked interval
+            freeWindowStart = blockedEnd.isAfter(freeWindowStart) ? blockedEnd : freeWindowStart;
+        }
+
+        // Handle the remaining free window after the last blocked interval until end of day
+        if (!freeWindowStart.plusHours(2).isAfter(dayEnd)) {
+            freeSlots.add(TimeSlot.builder()
+                    .from(freeWindowStart.toLocalTime())
+                    .to(dayEnd.toLocalTime())
+                    .build());
+        }
+
+        return freeSlots;
     }
 }

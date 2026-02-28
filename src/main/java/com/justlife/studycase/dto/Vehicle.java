@@ -18,6 +18,6 @@ public class Vehicle {
     @Schema(description = "Vehicle plate number")
     private String plateNumber;
 
-    @Schema(description = "Brand name")
+    @Schema(description = "Vehicle brand name")
     private String brandName;
 }

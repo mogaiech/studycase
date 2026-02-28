@@ -6,7 +6,7 @@ import lombok.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "professionals")
+@Table(name = "professional")
 @Getter
 @Setter
 @NoArgsConstructor

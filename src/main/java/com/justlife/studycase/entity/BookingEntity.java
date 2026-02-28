@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
-@Table(name = "bookings")
+@Table(name = "booking")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -41,7 +41,7 @@ public class BookingEntity {
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "booking_professionals",
+            name = "booking_professional",
             joinColumns = @JoinColumn(name = "booking_id"),
             inverseJoinColumns = @JoinColumn(name = "professional_id")
     )
