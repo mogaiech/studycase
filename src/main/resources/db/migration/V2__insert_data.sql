@@ -1,6 +1,3 @@
--- V2__seed_data.sql
--- Insert 5 fictional vehicles
-
 INSERT INTO vehicle (brand_name, plate_number)
 VALUES ('Hyundai', 'JL-001-A'),
        ('Toyota', 'JL-002-B'),
@@ -8,7 +5,6 @@ VALUES ('Hyundai', 'JL-001-A'),
        ('Nissan', 'JL-004-D'),
        ('Mitsubishi', 'JL-005-E');
 
--- Vehicle 1 - 5 professionals
 INSERT INTO professional (name, email, phone, vehicle_id)
 VALUES ('Ahmed Al-Rashid', 'ahmed.alrashid@justlife.com', '+971501000001', 1),
        ('Fatima Al-Zahra', 'fatima.alzahra@justlife.com', '+971501000002', 1),
@@ -16,7 +12,6 @@ VALUES ('Ahmed Al-Rashid', 'ahmed.alrashid@justlife.com', '+971501000001', 1),
        ('Layla Ibrahim', 'layla.ibrahim@justlife.com', '+971501000004', 1),
        ('Omar Khalid', 'omar.khalid@justlife.com', '+971501000005', 1);
 
--- Vehicle 2 - 5 professionals
 INSERT INTO professional (name, email, phone, vehicle_id)
 VALUES ('Sara Abdullah', 'sara.abdullah@justlife.com', '+971501000006', 2),
        ('Yusuf Al-Mansoori', 'yusuf.almansoori@justlife.com', '+971501000007', 2),
@@ -24,7 +19,6 @@ VALUES ('Sara Abdullah', 'sara.abdullah@justlife.com', '+971501000006', 2),
        ('Khalid Al-Farsi', 'khalid.alfarsi@justlife.com', '+971501000009', 2),
        ('Nora Al-Shamsi', 'nora.alshamsi@justlife.com', '+971501000010', 2);
 
--- Vehicle 3 - 5 professionals
 INSERT INTO professional (name, email, phone, vehicle_id)
 VALUES ('Ali Al-Maktoum', 'ali.almaktoum@justlife.com', '+971501000011', 3),
        ('Reem Al-Nuaimi', 'reem.alnuaimi@justlife.com', '+971501000012', 3),
@@ -32,7 +26,6 @@ VALUES ('Ali Al-Maktoum', 'ali.almaktoum@justlife.com', '+971501000011', 3),
        ('Maryam Saeed', 'maryam.saeed@justlife.com', '+971501000014', 3),
        ('Tariq Al-Hamdan', 'tariq.alhamdan@justlife.com', '+971501000015', 3);
 
--- Vehicle 4 - 5 professionals
 INSERT INTO professional (name, email, phone, vehicle_id)
 VALUES ('Zainab Al-Hussain', 'zainab.alhussain@justlife.com', '+971501000016', 4),
        ('Faisal Al-Qasimi', 'faisal.alqasimi@justlife.com', '+971501000017', 4),
@@ -40,7 +33,6 @@ VALUES ('Zainab Al-Hussain', 'zainab.alhussain@justlife.com', '+971501000016', 4
        ('Samir Haddad', 'samir.haddad@justlife.com', '+971501000019', 4),
        ('Dalia Yousef', 'dalia.yousef@justlife.com', '+971501000020', 4);
 
--- Vehicle 5 - 5 professionals
 INSERT INTO professional (name, email, phone, vehicle_id)
 VALUES ('Bilal Al-Sayed', 'bilal.alsayed@justlife.com', '+971501000021', 5),
        ('Hessa Al-Bloushi', 'hessa.albloushi@justlife.com', '+971501000022', 5),

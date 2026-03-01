@@ -14,8 +14,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
+import static com.justlife.studycase.utils.TestDates.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -24,6 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 public class IntegrationTest {
+
+    private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -37,17 +41,17 @@ public class IntegrationTest {
     }
 
     @Test
-    @DisplayName("Full flow to check availability, create booking, update booking")
+    @DisplayName("Full flow: check availability, create booking, get booking, update booking")
     void shouldCompleteFullBookingFlow() throws Exception {
-        // Check availability first
+        // Check availability for the day
         mockMvc.perform(get("/api/v1/availability")
-                        .param("date", "2026-03-10"))
+                        .param("date", WORK_DATE_STR))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.professionals").isArray());
 
         // Check availability for a specific slot
         mockMvc.perform(get("/api/v1/availability")
-                        .param("date", "2026-03-10")
+                        .param("date", WORK_DATE_STR)
                         .param("startTime", "10:00")
                         .param("durationHours", "2"))
                 .andExpect(status().isOk())
@@ -55,14 +59,14 @@ public class IntegrationTest {
 
         // Create a booking
         BookingRequest createRequest = BookingRequest.builder()
-                .startDateTime(LocalDateTime.of(2026, 3, 10, 10, 0))
+                .startDateTime(WORK_START)
                 .durationHours(2)
                 .professionalCount(1)
                 .customerName("Test Customer")
                 .customerEmail("test@customer.com")
                 .build();
 
-        MvcResult createResult = mockMvc.perform(post("/api/v1/bookings")
+        MvcResult createBooking = mockMvc.perform(post("/api/v1/bookings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated())
@@ -71,34 +75,33 @@ public class IntegrationTest {
                 .andExpect(jsonPath("$.professionals").isArray())
                 .andReturn();
 
-        BookingResponse created = objectMapper.readValue(createResult.getResponse().getContentAsString(), BookingResponse.class);
-        Long bookingId = created.getId();
-        assertThat(bookingId).isNotNull();
-        assertThat(created.getProfessionals()).hasSize(1);
+        BookingResponse bookingResponse = objectMapper.readValue(createBooking.getResponse().getContentAsString(), BookingResponse.class);
+        assertThat(bookingResponse.getId()).isNotNull();
+        assertThat(bookingResponse.getProfessionals()).hasSize(1);
 
         // Get the booking
-        mockMvc.perform(get("/api/v1/bookings/" + bookingId))
+        mockMvc.perform(get("/api/v1/bookings/" + bookingResponse.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(bookingId));
+                .andExpect(jsonPath("$.id").value(bookingResponse.getId()));
 
-        // Update the booking to a different day
+        // Reschedule the booking to date + 4
         BookingRequest updateRequest = BookingRequest.builder()
-                .startDateTime(LocalDateTime.of(2026, 3, 11, 14, 0))
+                .startDateTime(NEXT_DAY)
                 .durationHours(2)
                 .build();
 
-        mockMvc.perform(patch("/api/v1/bookings/" + bookingId)
+        mockMvc.perform(patch("/api/v1/bookings/" + bookingResponse.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.startDateTime").value("2026-03-11 14:00"));
+                .andExpect(jsonPath("$.startDateTime").value(NEXT_DAY.format(DATETIME_FORMAT)));
     }
 
     @Test
     @DisplayName("Should reject booking on Friday")
     void shouldRejectFridayBooking() throws Exception {
         BookingRequest request = BookingRequest.builder()
-                .startDateTime(LocalDateTime.of(2026, 3, 6, 10, 0)) // Friday
+                .startDateTime(FRIDAY)
                 .durationHours(2)
                 .professionalCount(1)
                 .customerName("Test Customer")
@@ -109,19 +112,19 @@ public class IntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Friday")));
+                .andExpect(jsonPath("$.message").value("No availability on Fridays"));
     }
 
     @Test
-    @DisplayName("Should check 30-minute break between consecutive bookings for same professional")
-    void shouldCheckBreakBetweenBookings() throws Exception {
-        // Create first booking: 10:00–12:00
+    @DisplayName("Should enforce 30-minute break: professional booked 10:00–12:00 is unavailable at 12:00")
+    void shouldEnforce30MinBreakBetweenBookings() throws Exception {
+        // Create a booking at 10:00–12:00
         BookingRequest first = BookingRequest.builder()
-                .startDateTime(LocalDateTime.of(2026, 3, 10, 10, 0))
+                .startDateTime(WORK_START)
                 .durationHours(2)
                 .professionalCount(1)
-                .customerName("Customer A")
-                .customerEmail("a@test.com")
+                .customerName("Test Customer")
+                .customerEmail("customer@test.com")
                 .build();
 
         mockMvc.perform(post("/api/v1/bookings")
@@ -129,12 +132,20 @@ public class IntegrationTest {
                         .content(objectMapper.writeValueAsString(first)))
                 .andExpect(status().isCreated());
 
-        // Verify the professional is marked unavailable
+        // The professional needs 30 min break after 12:00, so they should NOT appear at 12:00
         mockMvc.perform(get("/api/v1/availability")
-                        .param("date", "2026-03-10")
+                        .param("date", WORK_DATE_STR)
                         .param("startTime", "12:00")
                         .param("durationHours", "2"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.professionals").isArray());
+
+        mockMvc.perform(get("/api/v1/availability")
+                        .param("date", WORK_DATE_STR)
+                        .param("startTime", "12:30")
+                        .param("durationHours", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.professionals").isArray());
     }
 
     @Test
@@ -145,10 +156,11 @@ public class IntegrationTest {
     }
 
     @Test
-    @DisplayName("Availability check on Friday should return 400")
-    void availabilityCheckOnFridayShouldFail() throws Exception {
+    @DisplayName("Should return 400 when checking availability on Friday")
+    void shouldRejectAvailabilityOnFriday() throws Exception {
         mockMvc.perform(get("/api/v1/availability")
-                        .param("date", "2026-03-06"))
-                .andExpect(status().isBadRequest());
+                        .param("date", FRIDAY_DATE_STR))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("No availability on Fridays"));
     }
 }

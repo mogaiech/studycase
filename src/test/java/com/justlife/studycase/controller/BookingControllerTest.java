@@ -18,9 +18,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.justlife.studycase.utils.TestDates.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -49,8 +49,8 @@ public class BookingControllerTest {
     private BookingResponse buildResponse(Long id) {
         return BookingResponse.builder()
                 .id(id)
-                .startDateTime(LocalDateTime.of(2026, 6, 8, 10, 0))
-                .endDateTime(LocalDateTime.of(2026, 6, 8, 12, 0))
+                .startDateTime(WORK_START)
+                .endDateTime(WORK_START.plusHours(2))
                 .durationHours(2)
                 .customerName("John Doe")
                 .customerEmail("john@test.com")
@@ -70,8 +70,7 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 201 for valid booking request")
         void shouldReturn201ForValidRequest() throws Exception {
-            BookingRequest request = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 8, 10, 0), 2, 1, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(WORK_START, 2, 1, "john@test.com", "John Doe");
 
             when(bookingService.createBooking(any())).thenReturn(buildResponse(1L));
 
@@ -87,8 +86,7 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 400 when service throws BusinessException for too many professionals")
         void shouldReturn400ForTooManyProfessionals() throws Exception {
-            BookingRequest request = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 8, 10, 0), 2, 5, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(WORK_START, 2, 5, "john@test.com", "John Doe");
 
             when(bookingService.createBooking(any()))
                     .thenThrow(new BusinessException("Professional count must be 1, 2, or 3"));
@@ -103,8 +101,7 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 400 when service throws BusinessException for missing customerName")
         void shouldReturn400WhenCustomerNameMissing() throws Exception {
-            BookingRequest request = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 8, 10, 0), 2, 1, "john@test.com", null);
+            BookingRequest request = new BookingRequest(WORK_START, 2, 1, "john@test.com", null);
 
             when(bookingService.createBooking(any()))
                     .thenThrow(new BusinessException("customerName is required"));
@@ -119,8 +116,7 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 400 when service throws BusinessException (Friday)")
         void shouldReturn400OnBusinessException() throws Exception {
-            BookingRequest request = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 12, 10, 0), 2, 1, null, "John Doe"); // Friday
+            BookingRequest request = new BookingRequest(FRIDAY, 2, 1, null, "John Doe");
 
             when(bookingService.createBooking(any()))
                     .thenThrow(new BusinessException("No availability on Fridays"));
@@ -166,9 +162,7 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 200 for valid update")
         void shouldReturn200ForValidUpdate() throws Exception {
-            // Update only needs to startDateTime and durationHours
-            BookingRequest updateRequest = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 9, 14, 0), 2, null, null, null); // Tuesday
+            BookingRequest updateRequest = new BookingRequest(NEXT_DAY, 2, null, null, null);
 
             when(bookingService.updateBooking(eq(1L), any())).thenReturn(buildResponse(1L));
 
@@ -197,8 +191,7 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 404 for non-existing booking update")
         void shouldReturn404ForNonExistingBookingUpdate() throws Exception {
-            BookingRequest updateRequest = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 9, 14, 0), 2, null, null, null); // Tuesday
+            BookingRequest updateRequest = new BookingRequest(NEXT_DAY, 2, null, null, null);
 
             when(bookingService.updateBooking(eq(999L), any()))
                     .thenThrow(new BusinessException("Booking not found with id: 999", HttpStatus.NOT_FOUND));

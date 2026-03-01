@@ -157,7 +157,7 @@
                 {
                   "key": "date",
                   "value": "2026-03-06",
-                  "description": "A Friday — expected to return an error."
+                  "description": "A Friday - expected to return an error."
                 }
               ]
             },

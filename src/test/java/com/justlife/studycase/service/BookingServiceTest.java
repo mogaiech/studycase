@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.justlife.studycase.utils.TestDates.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -97,10 +98,9 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should create a booking with 1 professional successfully")
         void shouldCreateBookingWithOneProfessional() {
-            LocalDateTime start = LocalDateTime.of(2026, 6, 8, 10, 0);
-            BookingRequest request = new BookingRequest(start, 2, 1, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(WORK_START, 2, 1, "john@test.com", "John Doe");
 
-            BookingEntity saved = buildBooking(1L, start, 2, 1);
+            BookingEntity saved = buildBooking(1L, WORK_START, 2, 1);
             when(vehicleRepository.findAll()).thenReturn(List.of(vehicle));
             when(professionalRepository.findAvailableProfessionalsByVehicle(anyLong(), any(), any()))
                     .thenReturn(List.of(pro1, pro2, pro3));
@@ -116,10 +116,9 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should create a booking with 3 professionals from same vehicle")
         void shouldCreateBookingWithThreeProfessionals() {
-            LocalDateTime start = LocalDateTime.of(2026, 6, 8, 14, 0);
-            BookingRequest request = new BookingRequest(start, 4, 3, "jane@test.com", "Jane Doe");
+            BookingRequest request = new BookingRequest(WORK_START, 4, 3, "jane@test.com", "Jane Doe");
 
-            BookingEntity saved = buildBooking(2L, start, 4, 3);
+            BookingEntity saved = buildBooking(2L, WORK_START, 4, 3);
             when(vehicleRepository.findAll()).thenReturn(List.of(vehicle));
             when(professionalRepository.findAvailableProfessionalsByVehicle(anyLong(), any(), any()))
                     .thenReturn(List.of(pro1, pro2, pro3));
@@ -134,8 +133,7 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should throw exception when booking on a Friday")
         void shouldRejectFridayBooking() {
-            LocalDateTime friday = LocalDateTime.of(2026, 6, 12, 10, 0);
-            BookingRequest request = new BookingRequest(friday, 2, 1, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(FRIDAY, 2, 1, "john@test.com", "John Doe");
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(BusinessException.class)
@@ -145,8 +143,7 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should throw exception for invalid duration")
         void shouldRejectInvalidDuration() {
-            LocalDateTime start = LocalDateTime.of(2026, 6, 8, 10, 0);
-            BookingRequest request = new BookingRequest(start, 3, 1, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(WORK_START, 3, 1, "john@test.com", "John Doe");
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(BusinessException.class)
@@ -156,12 +153,11 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should throw exception when no vehicle has enough available professionals")
         void shouldThrowWhenNoAvailableProfessionals() {
-            LocalDateTime start = LocalDateTime.of(2026, 6, 8, 10, 0);
-            BookingRequest request = new BookingRequest(start, 2, 3, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(WORK_START, 2, 3, "john@test.com", "John Doe");
 
             when(vehicleRepository.findAll()).thenReturn(List.of(vehicle));
             when(professionalRepository.findAvailableProfessionalsByVehicle(anyLong(), any(), any()))
-                    .thenReturn(List.of(pro1, pro2)); // only 2 available, need 3
+                    .thenReturn(List.of(pro1, pro2));
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(BusinessException.class)
@@ -171,8 +167,7 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should reject booking starting before 08:00")
         void shouldRejectBookingBeforeWorkHours() {
-            LocalDateTime early = LocalDateTime.of(2026, 6, 8, 6, 0);
-            BookingRequest request = new BookingRequest(early, 2, 1, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(BEFORE_WORK_HOURS, 2, 1, "john@test.com", "John Doe");
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(BusinessException.class);
@@ -181,8 +176,7 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should reject 4-hour booking ending after 22:00")
         void shouldRejectBookingExceedingWorkHours() {
-            LocalDateTime late = LocalDateTime.of(2026, 6, 8, 19, 0);
-            BookingRequest request = new BookingRequest(late, 4, 1, "john@test.com", "John Doe");
+            BookingRequest request = new BookingRequest(LATE_START, 4, 1, "john@test.com", "John Doe");
 
             assertThatThrownBy(() -> bookingService.createBooking(request))
                     .isInstanceOf(BusinessException.class);
@@ -196,13 +190,10 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should update booking to a new time keeping same professionals")
         void shouldUpdateBookingKeepingSameProfessionals() {
-            LocalDateTime oldStart = LocalDateTime.of(2026, 6, 8, 10, 0);
-            LocalDateTime newStart = LocalDateTime.of(2026, 6, 9, 14, 0);
-
-            BookingEntity existing = buildBooking(1L, oldStart, 2, 1);
+            BookingEntity existing = buildBooking(1L, WORK_START, 2, 1);
             existing.setProfessionals(new LinkedHashSet<>(Set.of(pro1)));
 
-            BookingRequest updateRequest = new BookingRequest(newStart, 2, null, null, null);
+            BookingRequest updateRequest = new BookingRequest(NEXT_DAY, 2, null, null, null);
 
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(existing));
             when(availabilityService.isProfessionalAvailable(eq(1L), any(), any(), eq(1L)))
@@ -220,8 +211,7 @@ class BookingServiceTest {
         void shouldThrowForNonExistentBooking() {
             when(bookingRepository.findById(999L)).thenReturn(Optional.empty());
 
-            BookingRequest request = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 9, 10, 0), 2, null, null, null); // Tuesday
+            BookingRequest request = new BookingRequest(NEXT_DAY, 2, null, null, null);
 
             assertThatThrownBy(() -> bookingService.updateBooking(999L, request))
                     .isInstanceOf(BusinessException.class)
@@ -231,14 +221,12 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should reject update when it's on Friday")
         void shouldRejectUpdateToFriday() {
-            LocalDateTime oldStart = LocalDateTime.of(2026, 6, 8, 10, 0);
-            BookingEntity existing = buildBooking(1L, oldStart, 2, 1);
+            BookingEntity existing = buildBooking(1L, WORK_START, 2, 1);
             existing.setProfessionals(new LinkedHashSet<>(Set.of(pro1)));
 
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(existing));
 
-            LocalDateTime friday = LocalDateTime.of(2026, 6, 12, 10, 0); // Friday
-            BookingRequest request = new BookingRequest(friday, 2, null, null, null);
+            BookingRequest request = new BookingRequest(FRIDAY, 2, null, null, null);
 
             assertThatThrownBy(() -> bookingService.updateBooking(1L, request))
                     .isInstanceOf(BusinessException.class)
@@ -248,14 +236,12 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should reject update of a cancelled booking")
         void shouldRejectUpdateOfCancelledBooking() {
-            LocalDateTime start = LocalDateTime.of(2026, 6, 8, 10, 0);
-            BookingEntity cancelled = buildBooking(1L, start, 2, 1);
+            BookingEntity cancelled = buildBooking(1L, WORK_START, 2, 1);
             cancelled.setStatus(BookingStatus.CANCELLED);
 
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(cancelled));
 
-            BookingRequest request = new BookingRequest(
-                    LocalDateTime.of(2026, 6, 9, 10, 0), 2, null, null, null); // Tuesday
+            BookingRequest request = new BookingRequest(NEXT_DAY, 2, null, null, null);
 
             assertThatThrownBy(() -> bookingService.updateBooking(1L, request))
                     .isInstanceOf(BusinessException.class)
@@ -270,7 +256,7 @@ class BookingServiceTest {
         @Test
         @DisplayName("Should retrieve booking by ID")
         void shouldGetBookingById() {
-            BookingEntity booking = buildBooking(1L, LocalDateTime.of(2026, 6, 8, 10, 0), 2, 1);
+            BookingEntity booking = buildBooking(1L, WORK_START, 2, 1);
             booking.setProfessionals(new LinkedHashSet<>(Set.of(pro1)));
 
             when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
@@ -291,5 +277,4 @@ class BookingServiceTest {
                     .hasMessageContaining("not found");
         }
     }
-
 }

@@ -1,71 +1,107 @@
-# Studycase – Getting Started
+# Studycase
+
+A REST API for checking availability and managing bookings, built with **Java**, **Spring Boot** and **PostgreSQL**.  
+
+---
+
+## Tech Stack
+
+| Layer        | Technology                          |
+|--------------|-------------------------------------|
+| Language     | Java 17                             |
+| Framework    | Spring Boot 4.0.3 (Spring MVC)      |
+| Persistence  | Spring Data JPA + Hibernate         |
+| Database     | PostgreSQL 17                       |
+| Migrations   | Flyway                              |
+| API Docs     | SpringDoc OpenAPI (Swagger UI)      |
+| Build tool   | Maven                               |
+| Utilities    | Lombok                              |
+
+---
+
+## Business Rules
+
+- Bookings can be made **Monday to Thursday, Saturday, Sunday** — **Fridays are not allowed**
+- Working hours: **08:00 – 22:00** (start and end must be within this range)
+- Duration is either **2 or 4 hours**
+- Between **1 and 3 professionals** can be assigned per booking, all from the **same vehicle**
+- A **30-minute break** is enforced between consecutive appointments for each professional
+- Bookings cannot be created or updated to a **past date/time**
+
+---
 
 ## Prerequisites
 
-Make sure you have the following installed on your machine:
+Make sure the following are installed:
+
 - [Java 17+]
 - [Maven]
 - [Docker]
 
 ---
 
-## 1. Start the PostgreSQL Database
+## Getting Started
 
-The project uses a Dockerized PostgreSQL 17 instance managed via Docker Compose.
+### 1. Start the PostgreSQL database
 
 ```bash
 docker compose up -d
 ```
 
-This will:
-- Pull the `postgres:17` image if not already present
-- Create a container named `studycase_postgres`
-- Create a database named `studycase` with user `postgres` / password `postgres`
-- Expose PostgreSQL on **port 5433** 
+This starts a `postgres:17` container with:
 
-To verify the database is running:
+| Setting   | Value           |
+|-----------|-----------------|
+| Host      | `localhost`     |
+| Port      | `5433`          |
+| Database  | `studycase`     |
+| User      | `postgres`      |
+| Password  | `postgres`      |
 
-```bash
-docker exec studycase_postgres psql -U postgres -d studycase -c "SELECT 1"
-```
-
-## 2. Database migrations using Flyway
-
-Flyway is configured to run automatically on application startup.
-
-Migration scripts are located in:
-```
-src/main/resources/db/migration/
-```
-
-Scripts follow the naming convention: `V{version}__{description}.sql`
-
-No manual action is needed.
-
----
-
-## 3. Run Spring Boot Application
+### 2. Run the application
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-The application will start on **http://localhost:8080**.
+The application starts on **http://localhost:8080**.
 
-On startup, Spring Boot will:
-1. Connect to the PostgreSQL database on `localhost:5433`
-2. Run any pending Flyway migrations
+On startup it will automatically:
+1. Connect to PostgreSQL on `localhost:5433`
+2. Run pending Flyway migrations (schema + data)
 3. Start the embedded Tomcat server
 
-## 4. Stop database
+### 3. Explore the API
 
-To stop the **PostgreSQL container**:
+Swagger UI is available at:
+
+```
+http://localhost:8080/swagger-ui/index.html
+```
+
+---
+
+## Postman Collection
+
+A ready-to-use Postman collection is available at:
+
+```
+postman/Studycase API.postman_collection.json
+```
+
+Import it into Postman to test all endpoints immediately.
+
+---
+
+## Stopping dockerized database
+
+Stop the container:
 
 ```bash
 docker compose down
 ```
 
-To stop and **remove all data**:
+Stop and remove all data (volumes):
 
 ```bash
 docker compose down -v

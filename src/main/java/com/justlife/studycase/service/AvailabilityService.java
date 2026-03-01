@@ -30,7 +30,7 @@ public class AvailabilityService {
      * Check availability for a specific date or time slot.
      */
     public AvailabilityResponse checkAvailability(AvailabilityRequest availabilityRequest) {
-        validator.validatePastDate(availabilityRequest.getDate());
+        validator.validatePastDateTime(availabilityRequest.getDate(), availabilityRequest.getStartTime());
         validator.validateNotFriday(availabilityRequest.getDate());
 
         if (availabilityRequest.getDurationHours() != null && availabilityRequest.getStartTime() != null && Constant.VALID_DURATIONS.contains(availabilityRequest.getDurationHours())) {

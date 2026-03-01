@@ -17,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalTime;
 import java.util.List;
 
+import static com.justlife.studycase.utils.TestDates.FRIDAY_DATE_STR;
+import static com.justlife.studycase.utils.TestDates.WORK_DATE_STR;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -43,7 +45,7 @@ public class AvailabilityControllerTest {
 
             when(availabilityService.checkAvailability(any())).thenReturn(response);
 
-            mockMvc.perform(get("/api/v1/availability").param("date", "2026-03-02")).andExpect(status().isOk()).andExpect(jsonPath("$.professionals").isArray()).andExpect(jsonPath("$.professionals[0].name").value("Ahmed Al-Rashid")).andExpect(jsonPath("$.professionals[0].availableSlots").isArray()).andExpect(jsonPath("$.professionals[0].availableSlots[0].from").value("08:00")).andExpect(jsonPath("$.professionals[0].availableSlots[0].to").value("10:00"));
+            mockMvc.perform(get("/api/v1/availability").param("date", WORK_DATE_STR)).andExpect(status().isOk()).andExpect(jsonPath("$.professionals").isArray()).andExpect(jsonPath("$.professionals[0].name").value("Ahmed Al-Rashid")).andExpect(jsonPath("$.professionals[0].availableSlots").isArray()).andExpect(jsonPath("$.professionals[0].availableSlots[0].from").value("08:00")).andExpect(jsonPath("$.professionals[0].availableSlots[0].to").value("10:00"));
         }
 
         @Test
@@ -51,7 +53,7 @@ public class AvailabilityControllerTest {
         void shouldReturn200ForFullFilter() throws Exception {
             when(availabilityService.checkAvailability(any())).thenReturn(AvailabilityResponse.builder().professionals(List.of()).build());
 
-            mockMvc.perform(get("/api/v1/availability").param("date", "2026-03-02").param("startTime", "10:00").param("durationHours", "2")).andExpect(status().isOk()).andExpect(jsonPath("$.professionals").isArray()).andExpect(jsonPath("$.professionals").isEmpty());
+            mockMvc.perform(get("/api/v1/availability").param("date", WORK_DATE_STR).param("startTime", "10:00").param("durationHours", "2")).andExpect(status().isOk()).andExpect(jsonPath("$.professionals").isArray()).andExpect(jsonPath("$.professionals").isEmpty());
         }
 
         @Test
@@ -65,7 +67,7 @@ public class AvailabilityControllerTest {
         void shouldReturn400OnFriday() throws Exception {
             when(availabilityService.checkAvailability(any())).thenThrow(new BusinessException("No availability on Fridays"));
 
-            mockMvc.perform(get("/api/v1/availability").param("date", "2026-03-06")) // Friday
+            mockMvc.perform(get("/api/v1/availability").param("date", FRIDAY_DATE_STR))
                     .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("No availability on Fridays"));
         }
 
@@ -74,7 +76,7 @@ public class AvailabilityControllerTest {
         void shouldReturnEmptyListWhenNoneAvailable() throws Exception {
             when(availabilityService.checkAvailability(any())).thenReturn(AvailabilityResponse.builder().professionals(List.of()).build());
 
-            mockMvc.perform(get("/api/v1/availability").param("date", "2026-03-02")).andExpect(status().isOk()).andExpect(jsonPath("$.professionals").isArray()).andExpect(jsonPath("$.professionals").isEmpty());
+            mockMvc.perform(get("/api/v1/availability").param("date", WORK_DATE_STR)).andExpect(status().isOk()).andExpect(jsonPath("$.professionals").isArray()).andExpect(jsonPath("$.professionals").isEmpty());
         }
     }
 }

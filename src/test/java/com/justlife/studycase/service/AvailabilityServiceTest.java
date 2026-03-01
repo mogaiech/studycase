@@ -19,11 +19,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+import static com.justlife.studycase.utils.TestDates.FRIDAY_DATE;
+import static com.justlife.studycase.utils.TestDates.WORK_DATE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,8 +72,7 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should throw exception for Friday")
         void shouldRejectFriday() {
-            LocalDate friday = LocalDate.of(2024, 6, 7); // This is a Friday
-            AvailabilityRequest request = new AvailabilityRequest(friday, null, null);
+            AvailabilityRequest request = new AvailabilityRequest(FRIDAY_DATE, null, null);
 
             assertThatThrownBy(() -> availabilityService.checkAvailability(request))
                     .isInstanceOf(BusinessException.class)
@@ -82,8 +82,7 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should return professionals with slots when no bookings exist")
         void shouldReturnAvailableSlotsForFreeDay() {
-            LocalDate date = LocalDate.of(2026, 6, 10);
-            AvailabilityRequest request = new AvailabilityRequest(date, null, null);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, null, null);
 
             when(professionalRepository.findAll()).thenReturn(List.of(professionalEntity));
             when(bookingRepository.findBookingsForProfessionalOnDate(
@@ -99,14 +98,13 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should show no slots for a professional fully booked")
         void shouldReturnNoSlotsForFullyBookedProfessional() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
-            AvailabilityRequest request = new AvailabilityRequest(date, null, null);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, null, null);
 
             // Simulate a booking from 08:00 to 22:00 (full day blocked)
             BookingEntity fullDayBooking = BookingEntity.builder()
                     .id(1L)
-                    .startDateTime(LocalDateTime.of(date, LocalTime.of(8, 0)))
-                    .endDateTime(LocalDateTime.of(date, LocalTime.of(22, 0)))
+                    .startDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(8, 0)))
+                    .endDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(22, 0)))
                     .durationHours(4)
                     .status(BookingStatus.CONFIRMED)
                     .build();
@@ -129,9 +127,8 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should return available professionals for a valid time slot")
         void shouldReturnAvailableProfessionalsForSlot() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
             LocalTime startTime = LocalTime.of(10, 0);
-            AvailabilityRequest request = new AvailabilityRequest(date, startTime, 2);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, startTime, 2);
 
             when(professionalRepository.findAvailableProfessionals(any(), any()))
                     .thenReturn(List.of(professionalEntity));
@@ -145,8 +142,7 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should reject start before 08:00")
         void shouldRejectStartBeforeWorkHours() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
-            AvailabilityRequest request = new AvailabilityRequest(date, LocalTime.of(7, 0), 2);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, LocalTime.of(7, 0), 2);
 
             assertThatThrownBy(() -> availabilityService.checkAvailability(request))
                     .isInstanceOf(BusinessException.class);
@@ -155,9 +151,7 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should reject appointment ending after 22:00")
         void shouldRejectEndAfterWorkHours() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
-            // 21:00 + 2h = 23:00 → invalid
-            AvailabilityRequest request = new AvailabilityRequest(date, LocalTime.of(21, 0), 2);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, LocalTime.of(21, 0), 2);
 
             assertThatThrownBy(() -> availabilityService.checkAvailability(request))
                     .isInstanceOf(BusinessException.class);
@@ -166,8 +160,7 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Should return empty list when no professionals available")
         void shouldReturnEmptyWhenNoneAvailable() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
-            AvailabilityRequest request = new AvailabilityRequest(date, LocalTime.of(10, 0), 2);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, LocalTime.of(10, 0), 2);
 
             when(professionalRepository.findAvailableProfessionals(any(), any()))
                     .thenReturn(List.of());
@@ -184,8 +177,7 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Professional with no bookings should have a full-day free slot")
         void shouldComputeFullDaySlots() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
-            AvailabilityRequest request = new AvailabilityRequest(date, null, null);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, null, null);
 
             when(professionalRepository.findAll()).thenReturn(List.of(professionalEntity));
             when(bookingRepository.findBookingsForProfessionalOnDate(eq(1L), any(), any()))
@@ -204,14 +196,13 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Slots around an existing booking should respect 30-min break")
         void shouldRespectBreakBetweenAppointments() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
-            AvailabilityRequest request = new AvailabilityRequest(date, null, null);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, null, null);
 
             // Existing booking: 10:00–12:00
             BookingEntity existing = BookingEntity.builder()
                     .id(1L)
-                    .startDateTime(LocalDateTime.of(date, LocalTime.of(10, 0)))
-                    .endDateTime(LocalDateTime.of(date, LocalTime.of(12, 0)))
+                    .startDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(10, 0)))
+                    .endDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(12, 0)))
                     .durationHours(2)
                     .status(BookingStatus.CONFIRMED)
                     .build();
@@ -237,14 +228,13 @@ class AvailabilityServiceTest {
         @Test
         @DisplayName("Two back-to-back bookings (2h then 4h) should leave only one free window at end of day")
         void shouldComputeFreeSlotsAroundTwoBackToBackBookings() {
-            LocalDate date = LocalDate.of(2024, 6, 10);
-            AvailabilityRequest request = new AvailabilityRequest(date, null, null);
+            AvailabilityRequest request = new AvailabilityRequest(WORK_DATE, null, null);
 
             // Booking 1: 09:00–11:00 (2h) → blocked window: 08:30–11:30
             BookingEntity firstBooking = BookingEntity.builder()
                     .id(1L)
-                    .startDateTime(LocalDateTime.of(date, LocalTime.of(9, 0)))
-                    .endDateTime(LocalDateTime.of(date, LocalTime.of(11, 0)))
+                    .startDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(9, 0)))
+                    .endDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(11, 0)))
                     .durationHours(2)
                     .status(BookingStatus.CONFIRMED)
                     .build();
@@ -252,8 +242,8 @@ class AvailabilityServiceTest {
             // Booking 2: 12:00–16:00 (4h, starts right after the 30-min break of booking 1)
             BookingEntity secondBooking = BookingEntity.builder()
                     .id(2L)
-                    .startDateTime(LocalDateTime.of(date, LocalTime.of(12, 0)))
-                    .endDateTime(LocalDateTime.of(date, LocalTime.of(16, 0)))
+                    .startDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(12, 0)))
+                    .endDateTime(LocalDateTime.of(WORK_DATE, LocalTime.of(16, 0)))
                     .durationHours(4)
                     .status(BookingStatus.CONFIRMED)
                     .build();

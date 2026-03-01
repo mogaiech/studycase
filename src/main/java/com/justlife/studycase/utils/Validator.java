@@ -4,16 +4,19 @@ import com.justlife.studycase.dto.BookingRequest;
 import com.justlife.studycase.exception.BusinessException;
 import org.springframework.stereotype.Component;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 
 @Component
 public class Validator {
-    public void validatePastDate(LocalDate date) {
+    public void validatePastDateTime(LocalDate date, LocalTime time) {
         if(date.isBefore(LocalDate.now())) {
             throw new BusinessException("No availability on past date");
+        }
+        if (time != null) {
+            LocalDateTime dateTime = LocalDateTime.of(date, time);
+            if (dateTime.isBefore(LocalDateTime.now())) {
+                throw new BusinessException("No availability before today time");
+            }
         }
     }
 
