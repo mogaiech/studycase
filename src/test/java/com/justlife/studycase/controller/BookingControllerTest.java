@@ -140,11 +140,11 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 200 for existing booking")
         void shouldReturn200ForExistingBooking() throws Exception {
-            when(bookingService.getBooking(1L)).thenReturn(buildResponse(1L));
+            when(bookingService.getBooking(2L)).thenReturn(buildResponse(2L));
 
-            mockMvc.perform(get("/api/v1/bookings/1"))
+            mockMvc.perform(get("/api/v1/bookings/2"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(1))
+                    .andExpect(jsonPath("$.id").value(2))
                     .andExpect(jsonPath("$.customerName").value("John Doe"));
         }
 
@@ -166,7 +166,7 @@ public class BookingControllerTest {
         @Test
         @DisplayName("Should return 200 for valid update")
         void shouldReturn200ForValidUpdate() throws Exception {
-            // Update only needs startDateTime and durationHours
+            // Update only needs to startDateTime and durationHours
             BookingRequest updateRequest = new BookingRequest(
                     LocalDateTime.of(2026, 6, 9, 14, 0), 2, null, null, null); // Tuesday
 

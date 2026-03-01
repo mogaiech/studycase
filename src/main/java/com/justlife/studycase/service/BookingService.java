@@ -15,7 +15,7 @@ import com.justlife.studycase.utils.Constant;
 import com.justlife.studycase.utils.Validator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookingService {
@@ -67,13 +66,13 @@ public class BookingService {
     public BookingResponse getBooking(Long id) {
         return BookingMapper.toBookingResponseDto(
                 bookingRepository.findById(id)
-                        .orElseThrow(() -> new BusinessException("Booking not found with id: " + id)));
+                        .orElseThrow(() -> new BusinessException("Booking not found with id: " + id, HttpStatus.NOT_FOUND)));
     }
 
     @Transactional
     public BookingResponse updateBooking(Long id, BookingRequest bookingRequest) {
         BookingEntity bookingEntity = bookingRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Booking not found with id: " + id));
+                .orElseThrow(() -> new BusinessException("Booking not found with id: " + id, HttpStatus.NOT_FOUND));
 
         if (!BookingStatus.CONFIRMED.equals(bookingEntity.getStatus())) {
             throw new BusinessException("Cannot update a non confirmed bookingEntity");
@@ -83,23 +82,27 @@ public class BookingService {
 
         LocalDateTime startDateTime = bookingRequest.getStartDateTime();
         LocalDateTime endDateTime = startDateTime.plusHours(bookingEntity.getDurationHours());
-
-        boolean currentProfessionalsAvailable = bookingEntity.getProfessionals().stream()
-                .allMatch(prof -> availabilityService.isProfessionalAvailable(
-                        prof.getId(), startDateTime, endDateTime, id));
-
-        Set<ProfessionalEntity> assignedProfessionals;
-        if (currentProfessionalsAvailable) {
-            assignedProfessionals = bookingEntity.getProfessionals();
-        } else {
-            assignedProfessionals = findAvailableProfessionalsFromVehicle(startDateTime, endDateTime, bookingEntity.getProfessionalCount(), id);
-        }
+        Set<ProfessionalEntity> assignedProfessionals = getProfessionalEntities(id, bookingEntity, startDateTime, endDateTime);
 
         bookingEntity.setStartDateTime(startDateTime);
         bookingEntity.setEndDateTime(endDateTime);
         bookingEntity.setProfessionals(assignedProfessionals);
 
         return BookingMapper.toBookingResponseDto(bookingRepository.save(bookingEntity));
+    }
+
+    /**
+     * Get professionals for the booking.
+     * If current professionals are available for the new time slot, return them.
+     */
+    private Set<ProfessionalEntity> getProfessionalEntities(Long id, BookingEntity bookingEntity, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        boolean currentProfessionalsAvailable = bookingEntity.getProfessionals().stream()
+                .allMatch(pro -> availabilityService.isProfessionalAvailable(
+                        pro.getId(), startDateTime, endDateTime, id));
+        if (currentProfessionalsAvailable) {
+            return bookingEntity.getProfessionals();
+        }
+        return findAvailableProfessionalsFromVehicle(startDateTime, endDateTime, bookingEntity.getProfessionalCount(), id);
     }
 
     /**

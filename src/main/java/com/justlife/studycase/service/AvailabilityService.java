@@ -72,7 +72,7 @@ public class AvailabilityService {
         List<ProfessionalEntity> professionalEntities = professionalRepository.findAll();
 
         List<Professional> professionals = professionalEntities.stream()
-                .map(pro -> buildProfessionalWithAvailabileSlots(pro, date))
+                .map(pro -> buildProfessionalWithAvailableSlots(pro, date))
                 .filter(p -> !p.getAvailableSlots().isEmpty())
                 .collect(Collectors.toList());
 
@@ -82,7 +82,7 @@ public class AvailabilityService {
     /**
      * Build a professional with available time slots for the given date, taking into account existing bookings and the required break time.
      */
-    private Professional buildProfessionalWithAvailabileSlots(ProfessionalEntity professionalEntity, LocalDate date) {
+    private Professional buildProfessionalWithAvailableSlots(ProfessionalEntity professionalEntity, LocalDate date) {
         LocalDateTime dayStart = LocalDateTime.of(date, Constant.WORK_START);
         LocalDateTime dayEnd = LocalDateTime.of(date, Constant.WORK_END);
 

@@ -13,7 +13,7 @@ import java.util.List;
 public interface ProfessionalRepository extends JpaRepository<ProfessionalEntity, Long> {
 
     /**
-     * Find professionals who have no overlapping bookings in the given time window (including 30-minute break).
+     * Find professionals who have no overlapping bookings in the given time window (including a 30-minute break).
      */
     @Query("""
             SELECT cp FROM ProfessionalEntity cp

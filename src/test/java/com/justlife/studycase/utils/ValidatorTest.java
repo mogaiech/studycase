@@ -1,6 +1,5 @@
 package com.justlife.studycase.utils;
 
-import com.justlife.studycase.dto.AvailabilityRequest;
 import com.justlife.studycase.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

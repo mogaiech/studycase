@@ -2,9 +2,7 @@ package com.justlife.studycase.mapper;
 
 import com.justlife.studycase.dto.Professional;
 import com.justlife.studycase.dto.TimeSlot;
-import com.justlife.studycase.dto.Vehicle;
 import com.justlife.studycase.entity.ProfessionalEntity;
-import com.justlife.studycase.entity.VehicleEntity;
 
 import java.util.List;
 
