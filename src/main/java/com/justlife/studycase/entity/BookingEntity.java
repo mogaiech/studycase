@@ -34,7 +34,7 @@ public class BookingEntity {
     @Column(nullable = false)
     private int durationHours;
 
-    @Column(name = "professional_count", nullable = false)
+    @Column(nullable = false)
     private Integer professionalCount;
 
     @Enumerated(EnumType.STRING)
